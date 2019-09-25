@@ -20,5 +20,9 @@ public class CField {
 		return code;
 	}
 
+	public String getType() {
+		return type;
+	}
+
 
 }
