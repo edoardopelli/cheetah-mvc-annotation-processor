@@ -118,7 +118,7 @@ public class CheetahProcessor extends AbstractProcessor {
 					writer.append("import "+s+";\n");
 				}
 				writer.append("import java.io.Serializable;\n");
-				writer.append("public class "+name+" impl ements Serializable { \n");
+				writer.append("public class "+name+" implements Serializable { \n");
 				for (CField cField : fields) {
 					writer.append(cField.getCode()+"\n");
 				}
@@ -138,7 +138,7 @@ public class CheetahProcessor extends AbstractProcessor {
 		System.out.println("============================================");
 		System.out.println("============================================");
 		System.out.println("============================================");
-		return true;
+		return false;
 
 	}
 
