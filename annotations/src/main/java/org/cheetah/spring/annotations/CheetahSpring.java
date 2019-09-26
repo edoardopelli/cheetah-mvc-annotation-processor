@@ -34,7 +34,7 @@ public @interface CheetahSpring {
 	 */
 	String httproot() default "/";
 
-	CheetahMapping[] mappings(); 
+	CheetahMapping[] mappings() default {}; 
 	
 	
 }

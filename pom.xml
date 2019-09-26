@@ -10,66 +10,70 @@
 	<packaging>pom</packaging>
 
 
-	<dependencies>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<url>http://vpn.google.cloud:8081/repository/snapshots/</url>
+		</snapshotRepository>
+		<repository>
+			<id>central</id>
+			<url>http://vpn.google.cloud:8081/repository/releases/</url>
+			
+		</repository>
+	</distributionManagement>
 
-		<!-- Dependency to annotation -->
-
-
-		<!-- Java Poet to generate java files -->
-		<dependency>
-			<groupId>com.squareup</groupId>
-			<artifactId>javapoet</artifactId>
-			<version>1.1.0</version>
-		</dependency>
-
-
-
-		<!-- Auto service annotation processor -->
-		<dependency>
-			<groupId>com.google.auto.service</groupId>
-			<artifactId>auto-service</artifactId>
-			<version>1.0-rc1</version>
-			<optional>true</optional>
-		</dependency>
-
-
-		<!-- Apache Commons StringUtils -->
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-			<version>3.0</version>
-		</dependency>
-
-	</dependencies>
+	<scm>
+		<url>https://github.com/edoardopelli/cheetah-mvc-annotation-processor</url>
+		<connection>scm:git:https://github.com/edoardopelli/cheetah-mvc-annotation-processor</connection>
+		<developerConnection>scm:git:https://github.com/edoardopelli/cheetah-mvc-annotation-processor.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+	
 
 	<build>
-		<plugins>
+		 <pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.1</version>
+				</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>11</source> <!-- or higher, depending on your project -->
-					<target>11</target> <!-- or higher, depending on your project -->
-				</configuration>
-			</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>attach-javadocs</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-			</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>attach-sources</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-			</plugin>
-		</plugins>
+			</plugins>
+
+
+		</pluginManagement>
 	</build>
 
 
 	<modules>
 		<module>processor</module>
 		<module>annotations</module>
-		<module>example</module>
 	</modules>
 </project>
