@@ -2,6 +2,7 @@ package org.cheetah.processor;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.FileObject;
+import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +41,8 @@ public class CheetahProcessor extends AbstractProcessor {
 	private Filer filer;
 	private Messager messager;
 
+	private boolean foundEntities = false;
+
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
 		Set<String> annotations = new LinkedHashSet<String>();
@@ -53,95 +57,103 @@ public class CheetahProcessor extends AbstractProcessor {
 
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-		System.out.println("============================================");
-		System.out.println("============================================");
-		System.out.println("============================================");
-		for (Element annotadedElement : roundEnv.getElementsAnnotatedWith(CheetahSpring.class)) {
-			List<CField> fields = new ArrayList<>();// memorizza i campi da creare
-			List<CMethod> methods = new ArrayList<>();// memorizza i campi da creare
-			List<String> imports = new ArrayList<>();
-			TypeElement te = (TypeElement) annotadedElement;
-			CheetahSpring ann = te.getAnnotation(CheetahSpring.class);
-			Type type = ann.type();
-			TypeElement tEntity = this.elementUtils.getTypeElement(ann.entity());
-			List<? extends Element> enclosedElements = tEntity.getEnclosedElements();
-			// loop inside the enclosed elements (fields)
-			enclosed: for (Element typeElement : enclosedElements) {
-				if (!typeElement.getModifiers().contains(javax.lang.model.element.Modifier.STATIC)
-						&& !typeElement.getModifiers().contains(javax.lang.model.element.Modifier.FINAL)) {
-					if (typeElement.getKind() == ElementKind.FIELD) {
-						String name = typeElement.getSimpleName().toString();
-						String _class = typeElement.asType().toString();
-						// verifico se il campo è annotato con ManyToOne. In questo caso lo salto e vado
-						// a prendere il tipo primitivo
-						for (AnnotationMirror am : typeElement.getAnnotationMirrors()) {
-							if (am.getAnnotationType().toString().equals("javax.persistence.OneToMany")
-									|| am.getAnnotationType().toString().equals("javax.persistence.ManyToMany")) {
-								// I don't care
-								continue enclosed;
-							}
-							if (am.getAnnotationType().toString().equals("javax.persistence.ManyToOne")) {
-								TypeElement temp = this.elementUtils.getTypeElement(typeElement.asType().toString());
-								// ciclo tra le annotazioni di questo elemento e prendo il campo annotato con id
-								// e lo metto su questo dto.
-								for (Element typeElementInner : temp.getEnclosedElements()) {
-									for (AnnotationMirror amInner : typeElementInner.getAnnotationMirrors()) {
-										if (amInner.getAnnotationType().toString().equals("javax.persistence.Id")) {
-											_class = typeElementInner.asType().toString();
+//		try {
+
+//			if (!foundEntities) {
+//				for (Element annotadedElement : roundEnv.getElementsAnnotatedWith(
+//						(Class<? extends Annotation>) Class.forName("javax.persistence.Entity"))) {
+//					foundEntities = true;
+//					
+//				}
+//			}
+//		} catch (ClassNotFoundException e1) {
+//			e1.printStackTrace();
+//		}
+//		if (foundEntities) {
+			for (Element annotadedElement : roundEnv.getElementsAnnotatedWith(CheetahSpring.class)) {
+				List<CField> fields = new ArrayList<>();// memorizza i campi da creare
+				List<CMethod> methods = new ArrayList<>();// memorizza i campi da creare
+				
+				
+				List<String> imports = new ArrayList<>();
+				TypeElement te = (TypeElement) annotadedElement;
+				CheetahSpring ann = te.getAnnotation(CheetahSpring.class);
+				Type type = ann.type();//maybe unuseful
+				//get the entity type.
+				TypeElement tEntity = this.elementUtils.getTypeElement(ann.entity());
+				List<? extends Element> enclosedElements = tEntity.getEnclosedElements();
+				// loop inside the enclosed elements (fields)
+				enclosed: for (Element typeElement : enclosedElements) {
+					if (!typeElement.getModifiers().contains(javax.lang.model.element.Modifier.STATIC)
+							&& !typeElement.getModifiers().contains(javax.lang.model.element.Modifier.FINAL)) {
+						if (typeElement.getKind() == ElementKind.FIELD) {
+							String name = typeElement.getSimpleName().toString(); //the orginal attribute's name
+							String _class = typeElement.asType().toString(); //the original attibute type
+							// verifico se il campo è annotato con ManyToOne. In questo caso lo salto e vado
+							// a prendere il tipo primitivo
+							for (AnnotationMirror am : typeElement.getAnnotationMirrors()) {
+								if (am.getAnnotationType().toString().equals("javax.persistence.OneToMany")
+										|| am.getAnnotationType().toString().equals("javax.persistence.ManyToMany")) {
+									// I don't care
+									continue enclosed;
+								}
+								if (am.getAnnotationType().toString().equals("javax.persistence.ManyToOne")) {
+									TypeElement temp = this.elementUtils
+											.getTypeElement(typeElement.asType().toString());
+									// ciclo tra le annotazioni di questo elemento e prendo il campo annotato con id
+									// e lo metto su questo dto.
+									for (Element typeElementInner : temp.getEnclosedElements()) {
+										for (AnnotationMirror amInner : typeElementInner.getAnnotationMirrors()) {
+											if (amInner.getAnnotationType().toString().equals("javax.persistence.Id")) {
+												_class = typeElementInner.asType().toString();
+											}
 										}
 									}
 								}
 							}
-						}
-						CField f = new CField(name, _class);
-						CMethod m = new CMethod(name, _class);
-						fields.add(f);
-						methods.add(m);
-						System.out.println(_class + " ---> " + typeElement.asType().getKind().isPrimitive());
-						if (!typeElement.asType().getKind().isPrimitive()) {
-							if (!imports.contains(_class) && _class.indexOf("java.lang") == -1
-									&& (_class.indexOf("byte") == -1 && _class.indexOf("double") == -1
-											&& _class.indexOf("char") == -1 && _class.indexOf("short") == -1
-											&& _class.indexOf("long") == -1 && _class.indexOf("int") == -1)) {
-								imports.add(_class);
+							
+							CField f = new CField(name, _class);
+							CMethod m = new CMethod(name, _class);
+							fields.add(f);
+							methods.add(m);
+							
+							if (!typeElement.asType().getKind().isPrimitive()) {
+								if (!imports.contains(_class) && _class.indexOf("java.lang") == -1
+										&& (_class.indexOf("byte") == -1 && _class.indexOf("double") == -1
+												&& _class.indexOf("char") == -1 && _class.indexOf("short") == -1
+												&& _class.indexOf("long") == -1 && _class.indexOf("int") == -1)) {
+									imports.add(_class);
+								}
 							}
 						}
-//						System.out.println(f.getCode());
-//						System.out.println(m.getCode());
-//						System.out.println(typeElement + " --> " + typeElement.asType() + " / " + typeElement.getKind()
-//								+ " / " + typeElement.getModifiers());
 					}
 				}
-			}
-			try {
-				String path = StringUtils.replace(this.elementUtils.getPackageOf(annotadedElement).toString(), ".",
-						"/");
-				String name = ann.entity().substring(ann.entity().lastIndexOf(".") + 1) + "Dto";
-				System.out.println(name);
-				FileObject fo = this.filer.createResource(StandardLocation.SOURCE_OUTPUT, "",
-						path + "/test/" + name + ".java");
-				Writer writer = fo.openWriter();
-				writer.append("package " + this.elementUtils.getPackageOf(annotadedElement) + ".test;\n");
-				for (String s : imports) {
-					writer.append("import " + s + ";\n");
-				}
-				writer.append("import java.io.Serializable;\n");
-				writer.append("public class " + name + " implements Serializable { \n");
-				for (CField cField : fields) {
-					writer.append(cField.getCode() + "\n");
-				}
-				for (CMethod cMethod : methods) {
-					writer.append(cMethod.getCode() + "\n");
-				}
-				writer.append("}");
-				writer.close();
+				try {
+					String name = ann.entity().substring(ann.entity().lastIndexOf(".") + 1) + "Dto";
+					JavaFileObject fo = this.filer
+							.createSourceFile(this.elementUtils.getPackageOf(annotadedElement) + "." + name);
+					Writer writer = fo.openWriter();
+					writer.append("package " + this.elementUtils.getPackageOf(annotadedElement) + ";\n");
+					for (String s : imports) {
+						writer.append("import " + s + ";\n");
+					}
+					writer.append("import java.io.Serializable;\n");
+					writer.append("public class " + name + " implements Serializable { \n");
+					for (CField cField : fields) {
+						writer.append(cField.getCode() + "\n");
+					}
+					for (CMethod cMethod : methods) {
+						writer.append(cMethod.getCode() + "\n");
+					}
+					writer.append("}");
+					writer.close();
 
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 
-		}
+			}
+//		}
 		System.out.println("============================================");
 		System.out.println("============================================");
 		System.out.println("============================================");
