@@ -8,6 +8,9 @@ public class CField {
 	
 	private String code="";
 
+	private CMapping mapping;
+
+
 	public CField(String name, String type) {
 		super();
 		this.name = name;
@@ -24,5 +27,12 @@ public class CField {
 		return type;
 	}
 
+	public void setMapping(CMapping mapping) {
+		this.mapping=mapping;
+	}
+
+	public CMapping getMapping() {
+		return mapping;
+	}
 
 }
