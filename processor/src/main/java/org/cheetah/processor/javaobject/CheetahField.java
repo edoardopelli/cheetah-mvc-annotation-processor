@@ -1,8 +1,11 @@
 package org.cheetah.processor.javaobject;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class CheetahField implements CheetaJavaObject {
+import org.cheetah.processor.javaobject.enums.CheetahModifier;
+
+public class CheetahField extends CheetahAbstractJavaObject {
 	
 	private String name;
 	
@@ -10,7 +13,7 @@ public class CheetahField implements CheetaJavaObject {
 	
 	private CheetahModifier modifier;
 	
-	private List<CheetahAnnotation> annotations;
+	private List<CheetahAnnotation> annotations = new ArrayList<>();
 	
 	private boolean isStatic = false;
 	
@@ -24,10 +27,10 @@ public class CheetahField implements CheetaJavaObject {
 	}
 
 	@Override
-	public String writeObject() {
+	public String writeClass() {
 		StringBuilder sb = new StringBuilder();
 		for (CheetahAnnotation cheetahAnnotation : annotations) {
-			sb.append(cheetahAnnotation.writeObject());
+			sb.append(cheetahAnnotation.writeClass());
 		}
 		sb.append(modifier.equals(CheetahModifier.DEFAULT)? "" : modifier.toString().toLowerCase()).append(" ");
 		sb.append(isStatic()? " static " : "");

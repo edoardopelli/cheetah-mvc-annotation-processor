@@ -1,4 +1,4 @@
-package org.cheetah.processor.javaobject;
+package org.cheetah.processor.javaobject.enums;
 
 public enum CheetahModifier {
 

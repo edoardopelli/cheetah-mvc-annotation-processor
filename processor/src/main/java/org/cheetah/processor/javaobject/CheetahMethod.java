@@ -1,8 +1,11 @@
 package org.cheetah.processor.javaobject;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class CheetahMethod implements CheetaJavaObject {
+import org.cheetah.processor.javaobject.enums.CheetahModifier;
+
+public class CheetahMethod extends CheetahAbstractJavaObject {
 
 	private CheetahModifier modifier;
 
@@ -11,12 +14,12 @@ public class CheetahMethod implements CheetaJavaObject {
 
 	private String name;
 
-	private List<CheetahParameter> params;
+	private List<CheetahParameter> params = new ArrayList<>();
 
-	private List<CheetahLine> lines;
+	private List<CheetahLine> lines = new ArrayList<>();
 
 	@Override
-	public String writeObject() {
+	public String writeClass() {
 		StringBuilder sb = new StringBuilder("\n");
 		
 		sb.append(modifier.equals(CheetahModifier.DEFAULT)? "" : modifier.name().toLowerCase()).append(" ");
@@ -24,7 +27,7 @@ public class CheetahMethod implements CheetaJavaObject {
 		sb.append(name).append("(");
 		
 		for (CheetahParameter cheetahParameters : params) {
-			sb.append(cheetahParameters.writeObject()).append(",");
+			sb.append(cheetahParameters.writeClass()).append(",");
 		}
 		if(sb.toString().endsWith(",")){
 			sb = new StringBuilder(sb.substring(0,sb.lastIndexOf(",")));
@@ -33,11 +36,11 @@ public class CheetahMethod implements CheetaJavaObject {
 		sb.append("){\n");
 		
 		for (CheetahLine cheetahLine : lines) {
-			sb.append(cheetahLine.writeObject());
+			sb.append(cheetahLine.writeClass());
 		}
 		
 		sb.append("}\n\n");
-		return null;
+		return sb.toString();
 	}
 
 	public void addParam(CheetahParameter param) {
@@ -53,6 +56,10 @@ public class CheetahMethod implements CheetaJavaObject {
 		this.modifier = modifier;
 		this.returnType = returnType;
 		this.name = name;
+	}
+
+	public CheetahMethod(CheetahModifier modifier, String name) {
+		this(modifier,null,name);
 	}
 
 }

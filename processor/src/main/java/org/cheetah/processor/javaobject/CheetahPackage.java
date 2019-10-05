@@ -1,6 +1,6 @@
 package org.cheetah.processor.javaobject;
 
-public class CheetahPackage implements CheetaJavaObject {
+public class CheetahPackage extends CheetahAbstractJavaObject {
 
 	private String _package;
 	
@@ -12,8 +12,16 @@ public class CheetahPackage implements CheetaJavaObject {
 
 
 	@Override
-	public String writeObject() {
-		return _package+";\n\n";
+	public String writeClass() {
+		return "package "+_package+";\n\n";
 	}
+
+
+	@Override
+	public String writeShortClass() {
+		return _package;
+	}
+	
+	
 
 }

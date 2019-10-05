@@ -1,6 +1,6 @@
 package org.cheetah.processor.javaobject;
 
-public class CheetahAnnotation implements CheetaJavaObject{
+public class CheetahAnnotation extends CheetahAbstractJavaObject{
 	
 
 	private String type;
@@ -13,7 +13,7 @@ public class CheetahAnnotation implements CheetaJavaObject{
 
 
 	@Override
-	public String writeObject() {
+	public String writeClass() {
 		return "@"+type+"\n";
 	}
 

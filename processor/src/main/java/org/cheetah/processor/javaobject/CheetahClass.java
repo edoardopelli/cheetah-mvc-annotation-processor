@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.cheetah.processor.javaobject.enums.CheetahClassType;
 
-public class CheetahClass implements CheetaJavaObject {
+public class CheetahClass extends CheetahAbstractJavaObject {
 
 	private String name;
 
@@ -19,7 +19,13 @@ public class CheetahClass implements CheetaJavaObject {
 
 	private List<CheetahImport> imports = new ArrayList<>();
 
+	private List<String> generics = new ArrayList<>();
+
 	private CheetahClass extendedClass;
+
+	private CheetahPackage cheetahPackage;
+
+	private CheetahClassType type;
 
 	public CheetahClass(String name, CheetahClass extendedClass, CheetahClassType type) {
 		super();
@@ -27,10 +33,6 @@ public class CheetahClass implements CheetaJavaObject {
 		this.extendedClass = extendedClass;
 		this.type = type;
 	}
-
-	private CheetahPackage cheetahPackage;
-
-	private CheetahClassType type;
 
 	public CheetahClass(String name, CheetahClassType type) {
 		super();
@@ -59,14 +61,14 @@ public class CheetahClass implements CheetaJavaObject {
 	}
 
 	@Override
-	public String writeObject() {
+	public String writeClass() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(getPackage());
+		sb.append(getPackage().writeClass());
 		for (CheetahImport cheetahImport : imports) {
-			sb.append(cheetahImport.writeObject());
+			sb.append(cheetahImport.writeClass());
 		}
 		for (CheetahAnnotation cheetahAnnotation : annotations) {
-			sb.append(cheetahAnnotation.writeObject());
+			sb.append(cheetahAnnotation.writeClass());
 		}
 		sb.append("public ");
 
@@ -85,20 +87,29 @@ public class CheetahClass implements CheetaJavaObject {
 			sb.append(" extends ").append(getExtendedClass().getName());
 		}
 		if (getImplementedClasses().size() > 0) {
-			sb.append(" implements ");
+			switch (type) {
+			case CLASS:
+				sb.append(" implements ");
+				break;
+
+			default:
+				sb.append(" extends ");
+				break;
+			}
 			for (CheetahClass cheetahClass : implementedClasses) {
-				sb.append(cheetahClass.getName()).append(",");
+				sb.append(cheetahClass.writeShortClass()).append(",");
 			}
 			sb = new StringBuilder(sb.toString().substring(0, sb.lastIndexOf(",")));
 		}
 
-		sb.append("{\n");
+		sb.append("{\n\n");
 
 		for (CheetahField cheetahField : fields) {
-			sb.append(cheetahField.writeObject());
+			System.out.println("write field: " + cheetahField.getName());
+			sb.append(cheetahField.writeClass());
 		}
 		for (CheetahMethod cheetahMethod : methods) {
-			sb.append(cheetahMethod.writeObject());
+			sb.append(cheetahMethod.writeClass());
 		}
 
 		sb.append("}");
@@ -133,24 +144,51 @@ public class CheetahClass implements CheetaJavaObject {
 	public void addAnnotation(CheetahAnnotation a) {
 		this.annotations.add(a);
 	}
-	
+
 	public void addField(CheetahField a) {
 		this.fields.add(a);
 	}
-	
+
 	public void addMethod(CheetahMethod a) {
 		this.methods.add(a);
 	}
-	
+
 	public void addImport(CheetahImport a) {
-		this.imports.add(a);
+		if (!this.imports.contains(a)) {
+			this.imports.add(a);
+		}
 	}
-	
+
 	public void addImplementedClass(CheetahClass a) {
 		this.implementedClasses.add(a);
 	}
-	
-	
-	
 
+	public void addGeneric(String generic) {
+		this.generics.add(generic);
+	}
+
+	@Override
+	public String writeShortClass() {
+		boolean hasGenerics = generics.size() != 0;
+		StringBuilder sb = new StringBuilder();
+		sb.append(name).append(hasGenerics ? "<" : "");
+
+		for (String string : generics) {
+			sb.append(string).append(",");
+		}
+
+		if (sb.toString().endsWith(",")) {
+			sb = new StringBuilder(sb.substring(0, sb.lastIndexOf(",")));
+		}
+		sb.append(hasGenerics ? ">" : "");
+		return sb.toString();
+	}
+
+	public void setPackage(CheetahPackage cheetahPackage) {
+		this.cheetahPackage = cheetahPackage;
+	}
+
+	public String getQualifierName() {
+		return getPackage().writeShortClass() + "." + getName();
+	}
 }

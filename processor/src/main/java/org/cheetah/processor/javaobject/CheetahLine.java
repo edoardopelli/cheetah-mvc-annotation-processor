@@ -1,6 +1,6 @@
 package org.cheetah.processor.javaobject;
 
-public class CheetahLine implements CheetaJavaObject {
+public class CheetahLine extends CheetahAbstractJavaObject {
 	
 	private String line;
 
@@ -10,7 +10,7 @@ public class CheetahLine implements CheetaJavaObject {
 	}
 
 	@Override
-	public String writeObject() {
+	public String writeClass() {
 		return line+";\n";
 	}
 

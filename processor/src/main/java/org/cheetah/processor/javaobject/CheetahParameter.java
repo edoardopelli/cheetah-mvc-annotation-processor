@@ -1,6 +1,6 @@
 package org.cheetah.processor.javaobject;
 
-public class CheetahParameter implements CheetaJavaObject {
+public class CheetahParameter extends CheetahAbstractJavaObject {
 
 	private CheetahClass type;
 	
@@ -11,8 +11,8 @@ public class CheetahParameter implements CheetaJavaObject {
 	}
 	private String name; 
 	@Override
-	public String writeObject() {
-		return new StringBuilder().append(type).append(" ").append(name).toString();
+	public String writeClass() {
+		return new StringBuilder().append(type.writeShortClass()).append(" ").append(name).toString();
 	}
 
 }

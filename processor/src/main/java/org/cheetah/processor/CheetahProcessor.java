@@ -22,9 +22,21 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.JavaFileObject;
 
+import org.apache.commons.lang3.StringUtils;
+import org.cheetah.processor.javaobject.CheetahAnnotation;
+import org.cheetah.processor.javaobject.CheetahClass;
+import org.cheetah.processor.javaobject.CheetahField;
+import org.cheetah.processor.javaobject.CheetahImport;
+import org.cheetah.processor.javaobject.CheetahLine;
+import org.cheetah.processor.javaobject.CheetahMethod;
+import org.cheetah.processor.javaobject.CheetahPackage;
+import org.cheetah.processor.javaobject.CheetahParameter;
+import org.cheetah.processor.javaobject.enums.CheetahClassType;
+import org.cheetah.processor.javaobject.enums.CheetahModifier;
 import org.cheetah.processor.support.CField;
 import org.cheetah.processor.support.CMapping;
 import org.cheetah.processor.support.CMethod;
+import org.cheetah.processor.utils.Utils;
 import org.cheetah.spring.annotations.CheetahSpring;
 import org.cheetah.spring.annotations.Type;
 
@@ -74,8 +86,52 @@ public class CheetahProcessor extends AbstractProcessor {
 			List<String> imports = new ArrayList<>();
 			TypeElement te = (TypeElement) annotadedElement;
 			CheetahSpring ann = te.getAnnotation(CheetahSpring.class);
+
+			String entityName = ann.entity().substring(ann.entity().lastIndexOf(".") + 1);
+
 			Type type = ann.type();// maybe unuseful
 			String packageRoot = ann.pkgroot();
+
+			// preparing the classes I have to create;
+			CheetahClass controller = new CheetahClass(entityName + "Controller", CheetahClassType.CLASS);
+
+			CheetahClass service = new CheetahClass(entityName + "Service", CheetahClassType.CLASS);
+			service.setPackage(new CheetahPackage(packageRoot + ".service"));
+
+			CheetahClass dto = new CheetahClass(entityName + "Dto", CheetahClassType.CLASS);
+			dto.setPackage(new CheetahPackage(packageRoot + ".dto"));
+
+			CheetahClass repository = new CheetahClass(entityName + "Repository", CheetahClassType.INTERFACE);
+
+			CheetahClass pagingRepo = new CheetahClass("PagingAndSortingRepository", CheetahClassType.INTERFACE);
+			pagingRepo.addGeneric(entityName);
+
+			repository.addImport(new CheetahImport(ann.entity()));
+			repository.addImport(new CheetahImport("org.springframework.data.repository.PagingAndSortingRepository"));
+			repository.addImport(new CheetahImport("org.springframework.stereotype.Repository"));
+			repository.addAnnotation(new CheetahAnnotation("Repository"));
+
+			repository.addImplementedClass(pagingRepo);
+			repository.setPackage(new CheetahPackage(packageRoot + ".repository"));
+
+			// add repository injection to service class
+			CheetahField repositoryField = new CheetahField("repository", repository.getName(),
+					CheetahModifier.PRIVATE);
+			repositoryField.addAnnotation(new CheetahAnnotation("Autowired"));
+			service.addField(repositoryField);
+			service.addImport(new CheetahImport("org.springframework.beans.factory.annotation.Autowired"));
+			service.addImport(new CheetahImport(repository.getQualifierName()));
+
+			CheetahMethod serviceSaveMethod = new CheetahMethod(CheetahModifier.PUBLIC, dto, "save");
+			service.addImport(new CheetahImport(dto.getQualifierName()));
+			service.addImport(new CheetahImport(ann.entity()));
+			service.addImport(new CheetahImport("org.springframework.stereotype.Service"));
+			service.addAnnotation(new CheetahAnnotation("Service"));
+			serviceSaveMethod.addParam(new CheetahParameter(dto, StringUtils.uncapitalize(dto.getName())));
+			serviceSaveMethod.addLine(new CheetahLine(entityName + " ntt = new " + entityName + "()"));
+			service.addMethod(serviceSaveMethod);
+			CheetahLine lastLineSaveMethod = null;
+
 			// get the entity type.
 			TypeElement tEntity = this.elementUtils.getTypeElement(ann.entity());
 			List<? extends Element> enclosedElements = tEntity.getEnclosedElements();
@@ -85,15 +141,24 @@ public class CheetahProcessor extends AbstractProcessor {
 				if (!typeElement.getModifiers().contains(javax.lang.model.element.Modifier.STATIC)
 						&& !typeElement.getModifiers().contains(javax.lang.model.element.Modifier.FINAL)) {
 					if (typeElement.getKind() == ElementKind.FIELD) {
+						boolean skip = false;
 						String name = typeElement.getSimpleName().toString(); // the orginal attribute's name
 						String _class = typeElement.asType().toString(); // the original attibute type
-						CMapping mapping = null;
 						// I'm getting the annotations' field
 						List<? extends AnnotationMirror> entityAnnotations = typeElement.getAnnotationMirrors();
 						for (AnnotationMirror annotationMirror : entityAnnotations) {
 							if (isIdEntity(annotationMirror)) {
 								// the attribute is an Id
 								idType = typeElement.asType().toString();
+								// add generic to the PagingAndSortRepository interface
+								pagingRepo.addGeneric(idType);
+
+								// at this point I create a cheethaline object that must be attached at the end
+								// of save service method, for getting the id value
+								lastLineSaveMethod = new CheetahLine(StringUtils.uncapitalize(dto.getName()) + ".set"
+										+ StringUtils.capitalize(
+												typeElement.getSimpleName().toString() + "(ntt.get" + StringUtils
+														.capitalize(typeElement.getSimpleName().toString() + "())")));
 							}
 						}
 
@@ -106,58 +171,95 @@ public class CheetahProcessor extends AbstractProcessor {
 								continue enclosed;
 							}
 							if (am.getAnnotationType().toString().equals("javax.persistence.ManyToOne")) {
+								skip = true;
 								TypeElement temp = this.elementUtils.getTypeElement(typeElement.asType().toString());
+								// add code for dto to entity copy.
+								service.addImport(new CheetahImport(_class));
+								String simpleName = Utils.getClassName(_class);
+								// this is the name of object
+								String instanceName = StringUtils.uncapitalize(simpleName);
+								serviceSaveMethod.addLine(new CheetahLine(
+										simpleName + " " + instanceName + " = new " + simpleName + "()"));
+
 								// ciclo tra le annotazioni di questo elemento e prendo il campo annotato con id
 								// e lo metto su questo dto.
 								for (Element typeElementInner : temp.getEnclosedElements()) {
 									for (AnnotationMirror amInner : typeElementInner.getAnnotationMirrors()) {
 										if (isIdEntity(amInner)) {
 
-											mapping = new CMapping(name + "." + name, name);
 											_class = typeElementInner.asType().toString();
+											// create the second part of the method name with capitalize
+											String methodName = StringUtils
+													.capitalize(typeElementInner.getSimpleName().toString());
+											// Now set di value of id field in the inner class of entity
+											serviceSaveMethod.addLine(new CheetahLine(instanceName + ".set" + methodName
+													+ "(" + StringUtils.uncapitalize(dto.getName()) + ".get"
+													+ methodName + "())"));
 
 										}
 									}
+									// write value into entity
 								}
 							}
+
+						}
+						// here I'm writing the code for setting attributes of entity
+						if (!skip) {
+							String methodName = StringUtils.capitalize(name);
+
+							serviceSaveMethod.addLine(new CheetahLine("ntt.set" + methodName + "("
+									+ StringUtils.uncapitalize(dto.getName()) + ".get" + methodName + "())"));
+
 						}
 
-						CField f = new CField(name, _class);
-						CMethod m = new CMethod(name, _class);
-						if (mapping != null) {
-							f.setMapping(mapping);
-						}
-						fields.add(f);
-						methods.add(m);
+						CheetahField field = new CheetahField(name, _class, CheetahModifier.PRIVATE);
+
+						/**
+						 * Create the set method
+						 */
+						CheetahMethod setmethod = new CheetahMethod(CheetahModifier.PUBLIC,
+								"set" + StringUtils.capitalize(name));
+						CheetahParameter param1 = new CheetahParameter(new CheetahClass(_class, CheetahClassType.CLASS),
+								name);
+						setmethod.addParam(param1);
+						CheetahLine line = new CheetahLine("this." + name + "=" + name);
+						setmethod.addLine(line);
+						/**
+						 * Create the get method
+						 */
+						CheetahMethod getmethod = new CheetahMethod(CheetahModifier.PUBLIC,
+								new CheetahClass(_class, CheetahClassType.CLASS), "get" + StringUtils.capitalize(name));
+						getmethod.addLine(new CheetahLine("return this." + name));
+
+						dto.addField(field);
+						dto.addMethod(setmethod);
+						dto.addMethod(getmethod);
 
 						if (!typeElement.asType().getKind().isPrimitive()) {
 							if (!imports.contains(_class) && _class.indexOf("java.lang") == -1
 									&& (_class.indexOf("byte") == -1 && _class.indexOf("double") == -1
 											&& _class.indexOf("char") == -1 && _class.indexOf("short") == -1
 											&& _class.indexOf("long") == -1 && _class.indexOf("int") == -1)) {
-								imports.add(_class);
+								CheetahImport imp = new CheetahImport(_class);
+								dto.addImport(imp);
 							}
 						}
 					}
 				}
 			}
-			try {
-				String name = ann.entity().substring(ann.entity().lastIndexOf(".") + 1);
-				String packageOfAnnotadedElement = packageRoot + ".dto";
-				String packageOfRepository = packageRoot + ".repository";
-				String packageMapper = packageRoot + ".mapper";
-				String packageService = packageRoot + ".service";
-				createDto(fields, methods, imports, name, packageOfAnnotadedElement);
-				if (!idType.equals("")) {
-					createRepository(name, packageOfRepository, ann.entity(), idType);
-				}
-//				createMapper(packageMapper, fields, name + "Mapper", packageOfAnnotadedElement + "." + name + "Dto",
-//						ann.entity());
 
+			try {
+
+				serviceSaveMethod.addLine(new CheetahLine("ntt = " + repositoryField.getName() + ".save(ntt)"));
+				serviceSaveMethod.addLine(lastLineSaveMethod);
+				serviceSaveMethod.addLine(new CheetahLine("return " + StringUtils.uncapitalize(dto.getName())));
+
+				createClass(dto);
+				createClass(repository);
+				createClass(service);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
 		}
 //		}
 		System.out.println("============================================");
@@ -246,25 +348,11 @@ public class CheetahProcessor extends AbstractProcessor {
 
 	}
 
-	private void createDto(List<CField> fields, List<CMethod> methods, List<String> imports, String name,
-			String thePackage) throws IOException {
-		System.out.println("-----------> " + name);
-		name += "Dto";
-		JavaFileObject fo = this.filer.createSourceFile(thePackage + "." + name);
+	private void createClass(CheetahClass _class) throws IOException {
+		JavaFileObject fo = this.filer.createSourceFile(_class.getQualifierName());
 		Writer writer = fo.openWriter();
-		writer.append("package " + thePackage + ";\n");
-		for (String s : imports) {
-			writer.append("import " + s + ";\n");
-		}
-		writer.append("import java.io.Serializable;\n");
-		writer.append("public class " + name + " implements Serializable { \n");
-		for (CField cField : fields) {
-			writer.append(cField.getCode() + "\n");
-		}
-		for (CMethod cMethod : methods) {
-			writer.append(cMethod.getCode() + "\n");
-		}
-		writer.append("}");
+
+		writer.append(_class.writeClass());
 		writer.close();
 	}
 
