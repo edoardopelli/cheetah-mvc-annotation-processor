@@ -23,7 +23,7 @@ public class CheetahMethod extends CheetahAbstractJavaObject {
 		StringBuilder sb = new StringBuilder("\n");
 		
 		sb.append(modifier.equals(CheetahModifier.DEFAULT)? "" : modifier.name().toLowerCase()).append(" ");
-		sb.append(returnType==null? CheetahModifier.VOID.name().toLowerCase() : returnType.getName()).append(" ");
+		sb.append(returnType==null? CheetahModifier.VOID.name().toLowerCase() : returnType.writeShortClass()).append(" ");
 		sb.append(name).append("(");
 		
 		for (CheetahParameter cheetahParameters : params) {

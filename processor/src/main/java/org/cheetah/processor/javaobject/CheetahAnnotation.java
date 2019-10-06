@@ -5,6 +5,8 @@ public class CheetahAnnotation extends CheetahAbstractJavaObject{
 
 	private String type;
 	
+	
+	
 
 	public CheetahAnnotation(String type) {
 		super();
@@ -14,7 +16,16 @@ public class CheetahAnnotation extends CheetahAbstractJavaObject{
 
 	@Override
 	public String writeClass() {
-		return "@"+type+"\n";
+		return writeShortClass()+"\n";
+	}
+
+
+	/**
+	 * write the annotation without without CRLF
+	 */
+	@Override
+	public String writeShortClass() {
+		return "@"+type+" ";
 	}
 
 }

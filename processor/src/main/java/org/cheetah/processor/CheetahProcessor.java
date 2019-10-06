@@ -94,23 +94,16 @@ public class CheetahProcessor extends AbstractProcessor {
 
 			// preparing the classes I have to create;
 			CheetahClass controller = new CheetahClass(entityName + "Controller", CheetahClassType.CLASS);
+			controller.setPackage(new CheetahPackage(packageRoot+".controller"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.RestController"));
+			
+			
+			CheetahClass dto = getDtoClass(entityName, packageRoot);
 
-			CheetahClass dto = new CheetahClass(entityName + "Dto", CheetahClassType.CLASS);
-			dto.setPackage(new CheetahPackage(packageRoot + ".dto"));
+			CheetahClass pagingRepo = getPagingRepo(entityName);
+			CheetahClass repository = getRepoClass(ann, entityName, packageRoot, pagingRepo);
 
-			CheetahClass repository = new CheetahClass(entityName + "Repository", CheetahClassType.INTERFACE);
-
-			CheetahClass pagingRepo = new CheetahClass("PagingAndSortingRepository", CheetahClassType.INTERFACE);
-			pagingRepo.addGeneric(entityName);
-
-			repository.addImport(new CheetahImport(ann.entity()));
-			repository.addImport(new CheetahImport("org.springframework.data.repository.PagingAndSortingRepository"));
-			repository.addImport(new CheetahImport("org.springframework.stereotype.Repository"));
-			repository.addAnnotation(new CheetahAnnotation("Repository"));
-
-			repository.addImplementedClass(pagingRepo);
-			repository.setPackage(new CheetahPackage(packageRoot + ".repository"));
-
+			//create service class
 			CheetahClass service = new CheetahClass(entityName + "Service", CheetahClassType.CLASS);
 			service.setPackage(new CheetahPackage(packageRoot + ".service"));
 			// add repository injection to service class
@@ -246,6 +239,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			toDto.addParam(pToDto);
 			toDto.addLine(new CheetahLine(dto.getName()+" dto = new "+dto.getName()+"()"));
 			service.addMethod(toDto);
+			/////////////// end create service class //////////////
 			
 
 			// get the entity type.
@@ -397,6 +391,7 @@ public class CheetahProcessor extends AbstractProcessor {
 				createClass(dto);
 				createClass(repository);
 				createClass(service);
+				createClass(controller);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -407,6 +402,30 @@ public class CheetahProcessor extends AbstractProcessor {
 		System.out.println("============================================");
 		return true;
 
+	}
+
+	private CheetahClass getRepoClass(CheetahSpring ann, String entityName, String packageRoot,
+			CheetahClass pagingRepo) {
+		CheetahClass repository = new CheetahClass(entityName + "Repository", CheetahClassType.INTERFACE);
+		repository.addImport(new CheetahImport(ann.entity()));
+		repository.addImport(new CheetahImport("org.springframework.data.repository.PagingAndSortingRepository"));
+		repository.addImport(new CheetahImport("org.springframework.stereotype.Repository"));
+		repository.addAnnotation(new CheetahAnnotation("Repository"));
+		repository.addImplementedClass(pagingRepo);
+		repository.setPackage(new CheetahPackage(packageRoot + ".repository"));
+		return repository;
+	}
+
+	private CheetahClass getPagingRepo(String entityName) {
+		CheetahClass pagingRepo = new CheetahClass("PagingAndSortingRepository", CheetahClassType.INTERFACE);
+		pagingRepo.addGeneric(entityName);
+		return pagingRepo;
+	}
+
+	private CheetahClass getDtoClass(String entityName, String packageRoot) {
+		CheetahClass dto = new CheetahClass(entityName + "Dto", CheetahClassType.CLASS);
+		dto.setPackage(new CheetahPackage(packageRoot + ".dto"));
+		return dto;
 	}
 
 //	private void createMapper(String pkgMapper, List<CField> fields, String name, String dtoWithPackage, String entity)
