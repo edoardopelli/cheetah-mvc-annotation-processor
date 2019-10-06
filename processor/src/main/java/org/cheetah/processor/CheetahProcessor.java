@@ -95,9 +95,6 @@ public class CheetahProcessor extends AbstractProcessor {
 			// preparing the classes I have to create;
 			CheetahClass controller = new CheetahClass(entityName + "Controller", CheetahClassType.CLASS);
 
-			CheetahClass service = new CheetahClass(entityName + "Service", CheetahClassType.CLASS);
-			service.setPackage(new CheetahPackage(packageRoot + ".service"));
-
 			CheetahClass dto = new CheetahClass(entityName + "Dto", CheetahClassType.CLASS);
 			dto.setPackage(new CheetahPackage(packageRoot + ".dto"));
 
@@ -114,6 +111,8 @@ public class CheetahProcessor extends AbstractProcessor {
 			repository.addImplementedClass(pagingRepo);
 			repository.setPackage(new CheetahPackage(packageRoot + ".repository"));
 
+			CheetahClass service = new CheetahClass(entityName + "Service", CheetahClassType.CLASS);
+			service.setPackage(new CheetahPackage(packageRoot + ".service"));
 			// add repository injection to service class
 			CheetahField repositoryField = new CheetahField("repository", repository.getName(),
 					CheetahModifier.PRIVATE);
@@ -121,16 +120,133 @@ public class CheetahProcessor extends AbstractProcessor {
 			service.addField(repositoryField);
 			service.addImport(new CheetahImport("org.springframework.beans.factory.annotation.Autowired"));
 			service.addImport(new CheetahImport(repository.getQualifierName()));
-
-			CheetahMethod serviceSaveMethod = new CheetahMethod(CheetahModifier.PUBLIC, dto, "save");
 			service.addImport(new CheetahImport(dto.getQualifierName()));
 			service.addImport(new CheetahImport(ann.entity()));
 			service.addImport(new CheetahImport("org.springframework.stereotype.Service"));
+			service.addImport(new CheetahImport("java.util.List"));
+			service.addImport(new CheetahImport("java.util.ArrayList"));
+			service.addImport(new CheetahImport("java.util.Optional"));
+			service.addImport(new CheetahImport("org.springframework.data.domain.Page"));
+			service.addImport(new CheetahImport("org.springframework.data.domain.Pageable"));
+			service.addImport(new CheetahImport("org.springframework.data.domain.Sort"));
+			service.addImport(new CheetahImport("org.springframework.data.domain.Sort.Direction"));
+			service.addImport(new CheetahImport("org.springframework.data.domain.PageRequest"));
+
+
+			
+			CheetahMethod serviceSaveMethod = new CheetahMethod(CheetahModifier.PUBLIC, dto, "save");
 			service.addAnnotation(new CheetahAnnotation("Service"));
 			serviceSaveMethod.addParam(new CheetahParameter(dto, StringUtils.uncapitalize(dto.getName())));
-			serviceSaveMethod.addLine(new CheetahLine(entityName + " ntt = new " + entityName + "()"));
 			service.addMethod(serviceSaveMethod);
 			CheetahLine lastLineSaveMethod = null;
+
+			CheetahClass iterable = new CheetahClass("Iterable", CheetahClassType.INTERFACE);
+			iterable.addGeneric(dto.getName());
+			CheetahMethod servicesSaveAllMethod = new CheetahMethod(CheetahModifier.PUBLIC,iterable, "saveAll");
+			servicesSaveAllMethod.addParam(new CheetahParameter(iterable, "dtos"));
+			servicesSaveAllMethod.addLine(new CheetahLine("List<"+dto.getName()+"> result = new ArrayList<>()"));
+			servicesSaveAllMethod.addLine(new CheetahLine("for("+dto.getName()+" "+StringUtils.uncapitalize(dto.getName()+" : dtos ) {")));
+			servicesSaveAllMethod.addLine(new CheetahLine("result.add(save("+StringUtils.uncapitalize(dto.getName()+"))")));
+			servicesSaveAllMethod.addLine(new CheetahLine("}"));
+			servicesSaveAllMethod.addLine(new CheetahLine("return result"));
+			service.addMethod(servicesSaveAllMethod);
+			
+			CheetahMethod findByIdMethod = new CheetahMethod(CheetahModifier.PUBLIC,dto, "findById");
+			findByIdMethod.addLine(new CheetahLine("Optional<"+entityName+"> opt = repository.findById(id)"));
+			findByIdMethod.addLine(new CheetahLine(entityName+" ntt = opt.get()"));
+			findByIdMethod.addLine(new CheetahLine(dto.getName()+" dto = toDto(ntt)"));
+			findByIdMethod.addLine(new CheetahLine("return dto "));
+			service.addMethod(findByIdMethod);
+			
+			CheetahMethod existsById = new CheetahMethod(CheetahModifier.PUBLIC,new CheetahClass("boolean",CheetahClassType.PRIMITIVE), "existsById");
+			existsById.addLine(new CheetahLine("return repository.findById(id).isPresent()"));
+			service.addMethod(existsById);
+			
+			CheetahClass listDtoClass = new CheetahClass("List", CheetahClassType.CLASS);
+			listDtoClass.addGeneric(dto.getName());
+			CheetahMethod findAll = new CheetahMethod(CheetahModifier.PUBLIC, listDtoClass, "findAll");
+			findAll.addLine(new CheetahLine("List<"+dto.getName()+"> dtos = new ArrayList<>()"));
+			findAll.addLine(new CheetahLine("Iterable<"+entityName+"> result = repository.findAll()"));
+			findAll.addLine(new CheetahLine("for("+entityName+" ntt : result){"));
+			findAll.addLine(new CheetahLine("dtos.add(toDto(ntt))"));
+			findAll.addLine(new CheetahLine("}"));
+			findAll.addLine(new CheetahLine("return dtos"));
+			service.addMethod(findAll);
+			
+			CheetahMethod findAllById = new CheetahMethod(CheetahModifier.PUBLIC, listDtoClass, "findAllById");
+			findAllById.addLine(new CheetahLine("List<"+dto.getName()+"> dtos = new ArrayList<>()"));
+			findAllById.addLine(new CheetahLine("Iterable<"+entityName+"> result = repository.findAllById(ids)"));
+			findAllById.addLine(new CheetahLine("for("+entityName+" ntt : result){"));
+			findAllById.addLine(new CheetahLine("dtos.add(toDto(ntt))"));
+			findAllById.addLine(new CheetahLine("}"));
+			findAllById.addLine(new CheetahLine("return dtos"));
+			service.addMethod(findAllById);
+			
+			CheetahClass longClass = new CheetahClass("long", CheetahClassType.PRIMITIVE);
+			CheetahMethod count = new CheetahMethod(CheetahModifier.PUBLIC,longClass, "count");
+			count.addLine(new CheetahLine("return repository.count()"));
+			service.addMethod(count);
+			
+			CheetahMethod deleteById = new CheetahMethod(CheetahModifier.PUBLIC,"deleteById");
+			deleteById.addLine(new CheetahLine("repository.deleteById(id)"));
+			service.addMethod(deleteById);
+			
+			CheetahMethod delete = new CheetahMethod(CheetahModifier.PUBLIC,"delete");
+			CheetahParameter pDelete = new CheetahParameter(dto, "dto");
+			delete.addParam(pDelete);
+			delete.addLine(new CheetahLine(entityName+" ntt = toEntity(dto)"));
+			delete.addLine(new CheetahLine("repository.delete(ntt)"));
+			service.addMethod(delete);
+			
+			CheetahMethod deleteAll1 = new CheetahMethod(CheetahModifier.PUBLIC,"deleteAll");
+			deleteAll1.addLine(new CheetahLine("repository.deleteAll()"));
+			service.addMethod(deleteAll1);
+
+			CheetahMethod deleteAll2 = new CheetahMethod(CheetahModifier.PUBLIC,"deleteAll");
+			deleteAll2.addParam(new CheetahParameter(listDtoClass, "dtos"));
+			deleteAll2.addLine(new CheetahLine("List<"+entityName+"> ntts = new ArrayList<>()"));
+			deleteAll2.addLine(new CheetahLine("for("+dto.getName()+" dto : dtos){"));
+			deleteAll2.addLine(new CheetahLine("ntts.add(toEntity(dto))"));
+			deleteAll2.addLine(new CheetahLine("}"));
+			deleteAll2.addLine(new CheetahLine("repository.deleteAll(ntts)"));
+			service.addMethod(deleteAll2);
+			
+			CheetahMethod findAllSorted = new CheetahMethod(CheetahModifier.PUBLIC,listDtoClass, "findAll");
+			findAllSorted.addParam(new CheetahParameter(new CheetahClass("String", CheetahClassType.CLASS), "sort"));
+			findAllSorted.addLine(new CheetahLine("List<"+dto.getName()+"> dtos = new ArrayList<>()"));
+			findAllSorted.addLine(new CheetahLine("Iterable<"+entityName+"> ntts = repository.findAll(Sort.by(Direction.valueOf(sort.toUpperCase())))"));
+			findAllSorted.addLine(new CheetahLine("for ("+entityName+" ntt : ntts) {"));
+			findAllSorted.addLine(new CheetahLine("dtos.add(toDto(ntt))"));
+			findAllSorted.addLine(new CheetahLine("}"));
+			findAllSorted.addLine(new CheetahLine("return dtos"));
+			service.addMethod(findAllSorted);
+			
+			CheetahMethod findAllPage = new CheetahMethod(CheetahModifier.PUBLIC,listDtoClass, "findAll");
+			CheetahClass intType = new CheetahClass("int", CheetahClassType.PRIMITIVE);
+			findAllPage.addParam(new CheetahParameter(intType, "page"));
+			findAllPage.addParam(new CheetahParameter(intType, "maxResult"));
+			findAllPage.addLine(new CheetahLine("List<"+dto.getName()+"> dtos = new ArrayList<>()"));
+			findAllPage.addLine(new CheetahLine("Page<"+entityName+"> p = repository.findAll(PageRequest.of(page, maxResult))"));
+			findAllPage.addLine(new CheetahLine("List<"+entityName+"> ntts = p.getContent()"));
+			findAllPage.addLine(new CheetahLine("for ("+entityName+" ntt : ntts) {"));
+			findAllPage.addLine(new CheetahLine("dtos.add(toDto(ntt))"));
+			findAllPage.addLine(new CheetahLine("}"));
+			findAllPage.addLine(new CheetahLine("return dtos"));
+			service.addMethod(findAllPage);
+			
+			//private method for copying dto's attribbutes into entity. 
+			CheetahMethod toEntity = new CheetahMethod(CheetahModifier.PRIVATE, new CheetahClass(entityName, CheetahClassType.CLASS),  "toEntity");
+			toEntity.addParam(new CheetahParameter(dto, StringUtils.uncapitalize(dto.getName())));
+			toEntity.addLine(new CheetahLine(entityName + " ntt = new " + entityName + "()"));
+			CheetahLine lastLineToEntityMethod = new CheetahLine("return ntt");
+			service.addMethod(toEntity);
+			
+			CheetahMethod toDto = new CheetahMethod(CheetahModifier.PRIVATE,dto, "toDto");
+			CheetahParameter pToDto = new CheetahParameter(new CheetahClass(entityName, CheetahClassType.CLASS), "ntt");
+			toDto.addParam(pToDto);
+			toDto.addLine(new CheetahLine(dto.getName()+" dto = new "+dto.getName()+"()"));
+			service.addMethod(toDto);
+			
 
 			// get the entity type.
 			TypeElement tEntity = this.elementUtils.getTypeElement(ann.entity());
@@ -150,8 +266,13 @@ public class CheetahProcessor extends AbstractProcessor {
 							if (isIdEntity(annotationMirror)) {
 								// the attribute is an Id
 								idType = typeElement.asType().toString();
+								CheetahClass classType = new CheetahClass(idType,CheetahClassType.CLASS);
 								// add generic to the PagingAndSortRepository interface
 								pagingRepo.addGeneric(idType);
+								
+								CheetahClass idIterable = new CheetahClass("Iterable", CheetahClassType.INTERFACE);
+								idIterable.addGeneric(idType);
+								
 
 								// at this point I create a cheethaline object that must be attached at the end
 								// of save service method, for getting the id value
@@ -159,6 +280,17 @@ public class CheetahProcessor extends AbstractProcessor {
 										+ StringUtils.capitalize(
 												typeElement.getSimpleName().toString() + "(ntt.get" + StringUtils
 														.capitalize(typeElement.getSimpleName().toString() + "())")));
+								findByIdMethod.addParam(new CheetahParameter(classType, "id"));
+								
+								toDto.addLine(new CheetahLine("dto.set"+StringUtils.capitalize(
+												typeElement.getSimpleName().toString()+"(ntt.get"+StringUtils.capitalize(
+												typeElement.getSimpleName().toString()+"())"))));
+								
+								existsById.addParam(new CheetahParameter(classType, "id"));
+								
+								findAllById.addParam(new CheetahParameter(idIterable, "ids"));
+
+								deleteById.addParam(new CheetahParameter(classType, "id"));
 							}
 						}
 
@@ -178,7 +310,7 @@ public class CheetahProcessor extends AbstractProcessor {
 								String simpleName = Utils.getClassName(_class);
 								// this is the name of object
 								String instanceName = StringUtils.uncapitalize(simpleName);
-								serviceSaveMethod.addLine(new CheetahLine(
+								toEntity.addLine(new CheetahLine(
 										simpleName + " " + instanceName + " = new " + simpleName + "()"));
 
 								// ciclo tra le annotazioni di questo elemento e prendo il campo annotato con id
@@ -192,9 +324,13 @@ public class CheetahProcessor extends AbstractProcessor {
 											String methodName = StringUtils
 													.capitalize(typeElementInner.getSimpleName().toString());
 											// Now set di value of id field in the inner class of entity
-											serviceSaveMethod.addLine(new CheetahLine(instanceName + ".set" + methodName
+											toEntity.addLine(new CheetahLine(instanceName + ".set" + methodName
 													+ "(" + StringUtils.uncapitalize(dto.getName()) + ".get"
 													+ methodName + "())"));
+											
+											toDto.addLine(new CheetahLine("dto.set" + methodName
+													+ "(ntt.get"
+													+ methodName + "().get"+methodName+"())"));
 
 										}
 									}
@@ -207,8 +343,10 @@ public class CheetahProcessor extends AbstractProcessor {
 						if (!skip) {
 							String methodName = StringUtils.capitalize(name);
 
-							serviceSaveMethod.addLine(new CheetahLine("ntt.set" + methodName + "("
+							toEntity.addLine(new CheetahLine("ntt.set" + methodName + "("
 									+ StringUtils.uncapitalize(dto.getName()) + ".get" + methodName + "())"));
+							toDto.addLine(new CheetahLine("dto.set" + methodName + "("
+									+ "ntt.get" + methodName + "())"));
 
 						}
 
@@ -250,10 +388,12 @@ public class CheetahProcessor extends AbstractProcessor {
 
 			try {
 
-				serviceSaveMethod.addLine(new CheetahLine("ntt = " + repositoryField.getName() + ".save(ntt)"));
+				serviceSaveMethod.addLine(new CheetahLine(entityName+" ntt = " + repositoryField.getName() + ".save(toEntity("+StringUtils.uncapitalize(dto.getName())+"))"));
 				serviceSaveMethod.addLine(lastLineSaveMethod);
 				serviceSaveMethod.addLine(new CheetahLine("return " + StringUtils.uncapitalize(dto.getName())));
-
+				
+				toEntity.addLine(lastLineToEntityMethod);
+				toDto.addLine(new CheetahLine("return dto"));
 				createClass(dto);
 				createClass(repository);
 				createClass(service);
