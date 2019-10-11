@@ -17,10 +17,18 @@ public class CheetahMethod extends CheetahAbstractJavaObject {
 	private List<CheetahParameter> params = new ArrayList<>();
 
 	private List<CheetahLine> lines = new ArrayList<>();
+	
+	private List<CheetahAnnotation> annotations = new ArrayList<>();
+	
+	
 
 	@Override
 	public String writeClass() {
 		StringBuilder sb = new StringBuilder("\n");
+		
+		for (CheetahAnnotation cheetahAnnotation : annotations) {
+			sb.append(cheetahAnnotation.writeClass());
+		}
 		
 		sb.append(modifier.equals(CheetahModifier.DEFAULT)? "" : modifier.name().toLowerCase()).append(" ");
 		sb.append(returnType==null? CheetahModifier.VOID.name().toLowerCase() : returnType.writeShortClass()).append(" ");
@@ -49,6 +57,10 @@ public class CheetahMethod extends CheetahAbstractJavaObject {
 
 	public void addLine(CheetahLine line) {
 		this.lines.add(line);
+	}
+	
+	public void addAnnotation(CheetahAnnotation a) {
+		this.annotations.add(a);
 	}
 
 	public CheetahMethod(CheetahModifier modifier, CheetahClass returnType, String name) {

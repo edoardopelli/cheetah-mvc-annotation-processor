@@ -93,9 +93,6 @@ public class CheetahProcessor extends AbstractProcessor {
 			String packageRoot = ann.pkgroot();
 
 			// preparing the classes I have to create;
-			CheetahClass controller = new CheetahClass(entityName + "Controller", CheetahClassType.CLASS);
-			controller.setPackage(new CheetahPackage(packageRoot+".controller"));
-			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.RestController"));
 			
 			
 			CheetahClass dto = getDtoClass(entityName, packageRoot);
@@ -109,7 +106,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			// add repository injection to service class
 			CheetahField repositoryField = new CheetahField("repository", repository.getName(),
 					CheetahModifier.PRIVATE);
-			repositoryField.addAnnotation(new CheetahAnnotation("Autowired"));
+			repositoryField.addAnnotation(getAutowiredAnnotation());
 			service.addField(repositoryField);
 			service.addImport(new CheetahImport("org.springframework.beans.factory.annotation.Autowired"));
 			service.addImport(new CheetahImport(repository.getQualifierName()));
@@ -241,7 +238,40 @@ public class CheetahProcessor extends AbstractProcessor {
 			service.addMethod(toDto);
 			/////////////// end create service class //////////////
 			
+			
+			////////// CREATE Controller class
+			CheetahClass controller = new CheetahClass(entityName + "Controller", CheetahClassType.CLASS);
+			controller.setPackage(new CheetahPackage(packageRoot+".controller"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.RestController"));
+			controller.addImport(new CheetahImport("org.springframework.beans.factory.annotation.Autowired"));
+			controller.addImport(new CheetahImport("org.springframework.http.HttpStatus"));
+			controller.addImport(new CheetahImport("org.springframework.http.MediaType"));
+			controller.addImport(new CheetahImport("org.springframework.http.ResponseEntity"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.DeleteMapping"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.GetMapping"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.PathVariable"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.PostMapping"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.PutMapping"));
+			controller.addImport(new CheetahImport("org.springframework.web.bind.annotation.RequestBody"));
 
+			
+			CheetahAnnotation a = new CheetahAnnotation("RestController");
+			a.addAttribute("value", "\"/"+entityName.toLowerCase()+"\"");
+			controller.addAnnotation(a);
+			CheetahField serviceField = new CheetahField("service", service.getName(), CheetahModifier.PRIVATE);
+			serviceField.addAnnotation(getAutowiredAnnotation());
+			CheetahMethod saveControllerMethod = new CheetahMethod(CheetahModifier.PUBLIC,"save");
+			saveControllerMethod.addAnnotation(new CheetahAnnotation("PostMapping").addAttribute("consumes" , "MediaType.APPLICATION_JSON_UTF8_VALUE").addAttribute("produces" ,"MediaType.APPLICATION_JSON_UTF8_VALUE"));
+
+			/**public ResponseEntity<RistoranteDto> save(@RequestBody RistoranteDto dto) {
+				dto = service.save(dto);
+				if (dto.getIdRistorante() == null) {
+					return ResponseEntity.status(HttpStatus.NOT_FOUND).body(dto);
+				}
+				return ResponseEntity.ok(dto);
+			}*/
+			
+			
 			// get the entity type.
 			TypeElement tEntity = this.elementUtils.getTypeElement(ann.entity());
 			List<? extends Element> enclosedElements = tEntity.getEnclosedElements();
@@ -402,6 +432,10 @@ public class CheetahProcessor extends AbstractProcessor {
 		System.out.println("============================================");
 		return true;
 
+	}
+
+	private CheetahAnnotation getAutowiredAnnotation() {
+		return new CheetahAnnotation("Autowired");
 	}
 
 	private CheetahClass getRepoClass(CheetahSpring ann, String entityName, String packageRoot,

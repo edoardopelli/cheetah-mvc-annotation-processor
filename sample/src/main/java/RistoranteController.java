@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dnp.fastbook.dto.RistoranteDto;
 import com.dnp.fastbook.service.RistoranteService;
 
-@RestController("/ristorante")
+@RestController(value="/ristorante")
 public class RistoranteController {
 
 	@Autowired

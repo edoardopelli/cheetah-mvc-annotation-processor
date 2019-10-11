@@ -24,6 +24,10 @@ public class CheetahParameter extends CheetahAbstractJavaObject {
 		return sb.append(type.writeShortClass()).append(" ").append(name).toString();
 	}
 	
-	
+	public CheetahParameter addAnnotation(CheetahAnnotation a) {
+		this.annotations.add(a);
+		return this;
+		
+	}
 
 }
