@@ -166,6 +166,9 @@ public class CheetahClass extends CheetahAbstractJavaObject {
 	public void addGeneric(String generic) {
 		this.generics.add(generic);
 	}
+	public void addGeneric(CheetahClass generic) {
+		this.generics.add(generic.writeShortClass());
+	}
 
 	@Override
 	public String writeShortClass() {
