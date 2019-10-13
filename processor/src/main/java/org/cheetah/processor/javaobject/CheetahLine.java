@@ -11,7 +11,7 @@ public class CheetahLine extends CheetahAbstractJavaObject {
 
 	@Override
 	public String writeClass() {
-		return line+(line.endsWith("{")?"\n":";\n");
+		return line+(line.endsWith("{") || line.endsWith("}") ?"\n":";\n");
 	}
 
 }
