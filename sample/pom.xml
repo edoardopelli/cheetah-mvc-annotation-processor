@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.cheetah.spring</groupId>
 		<artifactId>mvc</artifactId>
-		<version>1.0.3-SNAPSHOT</version>
+		<version>1.0.3</version>
 	</parent>
 	<artifactId>sample</artifactId>
 
@@ -12,12 +12,12 @@
 		<dependency>
 			<groupId>org.cheetah.spring</groupId>
 			<artifactId>annotation</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
+			<version>1.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.cheetah.spring</groupId>
 			<artifactId>processor</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
+			<version>1.0.3</version>
 		</dependency>
 
 		<dependency>
