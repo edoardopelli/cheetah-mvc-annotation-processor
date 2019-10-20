@@ -258,7 +258,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			controller.addImport(new CheetahImport(dto.getQualifierName()));
 			controller.addImport(new CheetahImport(service.getQualifierName()));
 			CheetahAnnotation a = new CheetahAnnotation("RestController");
-			a.addAttribute("value", "\"/" + entityName.toLowerCase() + "\"");
+//			a.addAttribute("value", "\"/" + entityName.toLowerCase() + "\"");
 			controller.addAnnotation(a);
 
 			CheetahField serviceField = new CheetahField("service", service.getName(), CheetahModifier.PRIVATE);
@@ -269,6 +269,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			responseEntityClass.addGeneric(dto.getName());
 			CheetahMethod saveControllerMethod = new CheetahMethod(CheetahModifier.PUBLIC, responseEntityClass, "save");
 			saveControllerMethod.addAnnotation(new CheetahAnnotation("PostMapping")
+					.addAttribute("path", "\"/" + entityName.toLowerCase() + "\"")
 					.addAttribute("consumes", "MediaType.APPLICATION_JSON_UTF8_VALUE")
 					.addAttribute("produces", "MediaType.APPLICATION_JSON_UTF8_VALUE"));
 			CheetahParameter dtoParam = new CheetahParameter(dto, "dto");
@@ -279,6 +280,7 @@ public class CheetahProcessor extends AbstractProcessor {
 
 			CheetahMethod updateMethod = new CheetahMethod(CheetahModifier.PUBLIC, responseEntityClass, "update");
 			updateMethod.addAnnotation(new CheetahAnnotation("PutMapping")
+					.addAttribute("path", "\"/" + entityName.toLowerCase() + "\"")
 					.addAttribute("consumes", "MediaType.APPLICATION_JSON_UTF8_VALUE")
 					.addAttribute("produces", "MediaType.APPLICATION_JSON_UTF8_VALUE"));
 			controller.addMethod(updateMethod);
@@ -291,7 +293,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			responseEntityIterableClass.addGeneric(iterable2);
 			CheetahMethod saveAll = new CheetahMethod(CheetahModifier.PUBLIC, responseEntityIterableClass, "saveAll");
 			controller.addMethod(saveAll);
-			saveAll.addAnnotation(new CheetahAnnotation("PostMapping").addAttribute("path", "\"/saveall\"")
+			saveAll.addAnnotation(new CheetahAnnotation("PostMapping").addAttribute("path", "\"/"+entityName.toLowerCase()+"/saveall\"")
 					.addAttribute("consumes", "MediaType.APPLICATION_JSON_UTF8_VALUE")
 					.addAttribute("produces", "MediaType.APPLICATION_JSON_UTF8_VALUE"));
 			CheetahParameter paramDtos = new CheetahParameter(iterable2, "dtos");
@@ -301,7 +303,7 @@ public class CheetahProcessor extends AbstractProcessor {
 
 			CheetahMethod cFindById = new CheetahMethod(CheetahModifier.PUBLIC, responseEntityClass, "findById");
 			controller.addMethod(cFindById);
-			cFindById.addAnnotation(new CheetahAnnotation("GetMapping").addAttribute("path", "\"{id}\"")
+			cFindById.addAnnotation(new CheetahAnnotation("GetMapping").addAttribute("path", "\"/"+entityName.toLowerCase()+"/{id}\"")
 					.addAttribute("produces", "MediaType.APPLICATION_JSON_UTF8_VALUE"));
 			cFindById.addLine(new CheetahLine("try {"));
 			cFindById.addLine(new CheetahLine(dto.getName() + " dto = service.findById(id)"));
@@ -315,7 +317,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			CheetahMethod cDeleteById = new CheetahMethod(CheetahModifier.PUBLIC, responseEntityLongClass,
 					"deleteById");
 			controller.addMethod(cDeleteById);
-			cDeleteById.addAnnotation(new CheetahAnnotation("DeleteMapping").addAttribute("path", "\"{id}\""));
+			cDeleteById.addAnnotation(new CheetahAnnotation("DeleteMapping").addAttribute("path", "\"/"+entityName.toLowerCase()+"/{id}\""));
 			cDeleteById.addLine(new CheetahLine("service.deleteById(id)"));
 			cDeleteById.addLine(new CheetahLine("return ResponseEntity.ok(id)"));
 
@@ -325,7 +327,7 @@ public class CheetahProcessor extends AbstractProcessor {
 			controller.addMethod(cFindAll);
 			cFindAll.addParam(new CheetahParameter(new CheetahClass("int", CheetahClassType.PRIMITIVE), "page").addAnnotation(new CheetahAnnotation("PathVariable").addAttribute("name", "\"page\"")));
 			cFindAll.addParam(new CheetahParameter(new CheetahClass("int", CheetahClassType.PRIMITIVE), "maxResult").addAnnotation(new CheetahAnnotation("PathVariable").addAttribute("name", "\"max\"")));
-			cFindAll.addAnnotation(new CheetahAnnotation("GetMapping").addAttribute("path", "\"/findall/{page}/{max}\"")
+			cFindAll.addAnnotation(new CheetahAnnotation("GetMapping").addAttribute("path", "\"/"+entityName.toLowerCase()+"/findall/{page}/{max}\"")
 					.addAttribute("produces", "MediaType.APPLICATION_JSON_UTF8_VALUE"));
 			
 			
