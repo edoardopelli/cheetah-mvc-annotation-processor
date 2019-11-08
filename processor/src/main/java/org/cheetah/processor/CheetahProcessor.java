@@ -383,9 +383,14 @@ public class CheetahProcessor extends AbstractProcessor {
 														.capitalize(typeElement.getSimpleName().toString() + "())")));
 								findByIdMethod.addParam(new CheetahParameter(classType, "id"));
 
+								System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+								System.out.println("dto.set" + StringUtils
+										.capitalize(typeElement.getSimpleName().toString()) + "(ntt.get" + StringUtils
+										.capitalize(typeElement.getSimpleName().toString() + "())"));
+								System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 								toDto.addLine(new CheetahLine("dto.set" + StringUtils
-										.capitalize(typeElement.getSimpleName().toString() + "(ntt.get" + StringUtils
-												.capitalize(typeElement.getSimpleName().toString() + "())"))));
+										.capitalize(typeElement.getSimpleName().toString()) + "(ntt.get" + StringUtils
+												.capitalize(typeElement.getSimpleName().toString() + "())")));
 
 								existsById.addParam(new CheetahParameter(classType, "id"));
 
@@ -449,7 +454,7 @@ public class CheetahProcessor extends AbstractProcessor {
 													+ "())"));
 
 											toDto.addLine(new CheetahLine("dto.set" + methodName + "(ntt.get"
-													+ methodName + "().get" + methodName + "())"));
+													+ methodName + "())"));
 
 										}
 									}
@@ -464,8 +469,8 @@ public class CheetahProcessor extends AbstractProcessor {
 
 							toEntity.addLine(new CheetahLine("ntt.set" + methodName + "("
 									+ StringUtils.uncapitalize(dto.getName()) + ".get" + methodName + "())"));
-							toDto.addLine(
-									new CheetahLine("dto.set" + methodName + "(" + "ntt.get" + methodName + "())"));
+//							toDto.addLine(
+//									new CheetahLine("dto.set" + methodName + "(" + "ntt.get" + methodName + "())"));
 
 						}
 
@@ -524,9 +529,6 @@ public class CheetahProcessor extends AbstractProcessor {
 			}
 		}
 //		}
-		System.out.println("============================================");
-		System.out.println("============================================");
-		System.out.println("============================================");
 		return true;
 
 	}
