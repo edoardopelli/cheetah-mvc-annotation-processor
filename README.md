@@ -1,7 +1,7 @@
 # cheetah-mvc-annotation-processor
 Annotation processor for creating Controller-Service-Repository classes
 
-Create your Entity classes, the create an interface and annotate it with @CheetahSpring annotation.
+Create your Entity classes, then create an interface and annotate it with @CheetahSpring annotation.
 You have to specify 3 attributes: 
 
 entity (qualified name)
